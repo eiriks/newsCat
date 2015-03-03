@@ -1,0 +1,2 @@
+# newsCat
+Initial test
