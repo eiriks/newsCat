@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+# Eiriks fixes
+/data/*
+/input_data/*
+
 # C extensions
 *.so
 
