@@ -6,6 +6,11 @@ __pycache__/
 /data/*
 /input_data/*
 
+*.ipynb
+*.xlsx
+*.xls
+*.sh
+
 # C extensions
 *.so
 
