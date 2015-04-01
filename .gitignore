@@ -3,8 +3,8 @@ __pycache__/
 *.py[cod]
 
 # Eiriks fixes
-/data/*
-/input_data/*
+data/*
+input_data/*
 
 *.ipynb
 *.xlsx
