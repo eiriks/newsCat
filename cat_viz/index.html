@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: auto;
+  position: relative;
+  width: 960px;
+}
+
+form {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+
+path {
+  stroke: #fff;
+  fill-rule: evenodd;
+}
+
+text {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+}
+</style>
+<form>
+  <button type="button" id="save">Lagre</button>
+  <!-- <label><input type="radio" name="mode" value="size"> Size</label>
+  <label><input type="radio" name="mode" value="count" checked> Count</label> -->
+</form>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+
+var width = 1000,
+    height = 1000,
+    radius = Math.min(width, height) / 2,
+    color = d3.scale.category20c();
+
+    var x = d3.scale.linear()
+        .range([0, 2 * Math.PI]);
+
+    var y = d3.scale.linear()
+        .range([0, radius]);
+
+
+// var svg = d3.select("body").append("svg")
+//     .attr("width", width)
+//     .attr("height", height)
+//   .append("g")
+//     .attr("transform", "translate(" + width / 2 + "," + height * .52 + ")");
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(" + width / 2 + "," + (height / 2 + 10) + ")");
+// var partition = d3.layout.partition()
+//     .sort(null)
+//     .size([2 * Math.PI, radius * radius])
+//     .value(function(d) { return 1; });
+var partition = d3.layout.partition()
+    .value(function(d) { return d.size; });
+// var arc = d3.svg.arc()
+//     .startAngle(function(d) { return d.x; })
+//     .endAngle(function(d) { return d.x + d.dx; })
+//     .innerRadius(function(d) { return Math.sqrt(d.y); })
+//     .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
+
+var arc = d3.svg.arc()
+    .startAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x))); })
+    .endAngle(function(d) { return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx))); })
+    .innerRadius(function(d) { return Math.max(0, y(d.y)); })
+    .outerRadius(function(d) { return Math.max(0, y(d.y + d.dy)); });
+
+d3.json("model_HS.json", function(error, root) {
+  var g = svg.selectAll("g")
+      .data(partition.nodes(root))
+    .enter().append("g");
+
+    var path = g.append("path")
+      .attr("d", arc)
+      .style("fill", function(d) { return color((d.children ? d : d.parent).name); });
+//      .on("click", click);
+
+  // var path = svg.datum(root).selectAll("path")
+  //     .data(partition.nodes)
+    // .enter().append("path")
+    //   .attr("display", function(d) { return d.depth ? null : "none"; }) // hide inner ring
+    //   .attr("d", arc)
+    //   .style("stroke", "#fff")
+    //   .style("fill", function(d) { return color((d.children ? d : d.parent).name); })
+    //   .style("fill-rule", "evenodd")
+    //   .each(stash);
+
+    var text = g.append("text") // tidl g nå path
+      .attr("transform", function(d) {console.log(d); return "rotate(" + computeTextRotation(d) + ")"; })
+      .attr("x", function(d) { return y(d.y); })
+      .attr("dx", "6") // margin
+      .attr("dy", ".35em") // vertical-align
+      .text(function(d) { return d.name; });
+
+  // d3.selectAll("input").on("change", function change() {
+  //   var value = this.value === "count"
+  //       ? function() { return 1; }
+  //       : function(d) { return d.size; };
+  //
+  //   path
+  //       .data(partition.value(value).nodes)
+  //     .transition()
+  //       .duration(1500)
+  //       .attrTween("d", arcTween);
+  // });
+});
+
+// compute rotation for labels
+function computeTextRotation(d) {
+  return (x(d.x + d.dx / 2) - Math.PI / 2) / Math.PI * 180;
+}
+
+// Stash the old values for transition.
+function stash(d) {
+  d.x0 = d.x;
+  d.dx0 = d.dx;
+}
+
+// Interpolate the arcs in data space.
+function arcTween(a) {
+  var i = d3.interpolate({x: a.x0, dx: a.dx0}, a);
+  return function(t) {
+    var b = i(t);
+    a.x0 = b.x;
+    a.dx0 = b.dx;
+    return arc(b);
+  };
+}
+
+d3.select(self.frameElement).style("height", height + "px");
+
+d3.select("#save").on("click", function(){
+  var html = d3.select("svg")
+        .attr("version", 1.1)
+        .attr("xmlns", "http://www.w3.org/2000/svg")
+        .node().parentNode.innerHTML;
+
+  //console.log(html);
+  var imgsrc = 'data:image/svg+xml;base64,'+ btoa(html);
+  var img = '<img src="'+imgsrc+'">';
+  d3.select("#svgdataurl").html(img);
+
+	var canvas = document.querySelector("canvas"),
+	    context = canvas.getContext("2d");
+
+	var image = new Image;
+	image.src = imgsrc;
+	image.onload = function() {
+	  context.drawImage(image, 0, 0);
+
+	  //save and serve it as an actual filename
+    binaryblob();
+
+	  var a = document.createElement("a");
+	  a.download = "sample.png";
+	  a.href = canvas.toDataURL("image/png");
+
+	   var pngimg = '<img src="'+a.href+'">';
+  	   d3.select("#pngdataurl").html(pngimg);
+
+	  a.click();
+	};
+
+});
+
+
+function binaryblob(){
+	var byteString = atob(document.querySelector("canvas").toDataURL().replace(/^data:image\/(png|jpg);base64,/, "")); //wtf is atob?? https://developer.mozilla.org/en-US/docs/Web/API/Window.atob
+	var ab = new ArrayBuffer(byteString.length);
+	var ia = new Uint8Array(ab);
+	for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    var dataView = new DataView(ab);
+	var blob = new Blob([dataView], {type: "image/png"});
+	var DOMURL = self.URL || self.webkitURL || self;
+	var newurl = DOMURL.createObjectURL(blob);
+
+	var img = '<img src="'+newurl+'">';
+  d3.select("#img").html(img);
+}
+
+
+</script>
+</head>
+<body>
+  <div id="svgdataurl"></div>
+  <div id="pngdataurl"></div>
+</body>
+</html>
